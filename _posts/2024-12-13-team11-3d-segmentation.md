@@ -6,62 +6,54 @@ author: Rathul Anand, Jason Liu
 date: 2024-12-12
 ---
 
-> This block is a brief introduction of your project. You can put your abstract here or any headers you want the readers to know.
-
+> In 3D semantic segmentation, our goal is to assign a class label to every point in a LiDAR point cloud. Compared to pixel grids of 2D images, point clouds are unordered and sparse, making them more challenging to work with. 3D semantic segmentation has many uses, most notably in autonomous driving. We will discuss PointNet, PointTransformerV3, and Panoptic-Polarnet.
 
 <!--more-->
 {: class="table-of-content"}
 * TOC
 {:toc}
 
-## Main Content
-Your survey starts here. You can refer to the [source code](https://github.com/lilianweng/lil-log/tree/master/_posts) of [lil's blogs](https://lilianweng.github.io/lil-log/) for article structure ideas or Markdown syntax. We've provided a [sample post](https://ucladeepvision.github.io/CS188-Projects-2022Winter/2017/06/21/an-overview-of-deep-learning.html) from Lilian Weng and you can find the source code [here](https://raw.githubusercontent.com/UCLAdeepvision/CS188-Projects-2022Winter/main/_posts/2017-06-21-an-overview-of-deep-learning.md)
-
-## Basic Syntax
-### Image
-Please create a folder with the name of your team id under /assets/images/, put all your images into the folder and reference the images in your main content.
-
-You can add an image to your survey like this:
-![YOLO]({{ '/assets/images/UCLAdeepvision/object_detection.png' | relative_url }})
+## Intro
+![2DSeg]({{ '/assets/images/team11/cat_seg.png' | relative_url }})
 {: style="width: 400px; max-width: 100%;"}
-*Fig 1. YOLO: An object detection method in computer vision* [1].
+*Fig 1. Example of 2D Semantic Segmentation* [1].
 
-Please cite the image if it is taken from other people's work.
+2D semantic segmentation involves assigning a class label to every pixel in an image. In 3D sematic segmentation, we assign a class label to every point in a LiDAR point cloud. This is a more challenging task due to the sparsity and unordered nature of point clouds, resulting in a lack of inherent spatial relationships between points and making it difficult to utilize traditional grid-based operations like convolutions.
 
+![3DSeg]({{ '/assets/images/team11/3d_seg.png' | relative_url }})
+{: style="width: 400px; max-width: 100%;"}
+*Fig 2. Example of 3D Semantic Segmentation* [2].
 
-### Table
-Here is an example for creating tables, including alignment syntax.
+Some researchers transform point clouds into voxel grids, a 3D counterpart to pixels. However, voxelization results in an extremely voluminious data representation, making it computationally prohibitive. Instead, we focus on techniques that directly leverage point clouds to perform 3D semantic segmentation.
 
-|             | column 1    |  column 2     |
-| :---        |    :----:   |          ---: |
-| row1        | Text        | Text          |
-| row2        | Text        | Text          |
+### LiDAR Point Clouds
 
+### Datasets
 
+### Evalation Metrics
 
-### Code Block
-```
-# This is a sample code block
-import torch
-print (torch.__version__)
-```
+## Models
+### PointNet
 
+### PointTransformer V3
 
-### Formula
-Please use latex to generate formulas, such as:
+### Panoptic-PolarNet
 
-$$
-\tilde{\mathbf{z}}^{(t)}_i = \frac{\alpha \tilde{\mathbf{z}}^{(t-1)}_i + (1-\alpha) \mathbf{z}_i}{1-\alpha^t}
-$$
-
-or you can write in-text formula $$y = wx + b$$.
-
-### More Markdown Syntax
-You can find more Markdown syntax at [this page](https://www.markdownguide.org/basic-syntax/).
 
 ## Reference
-Please make sure to cite properly in your work, for example:
+[1] Zhou, Bolei. *Lecture 14: Detection + Segmentation.* Computer Science 163: Deep Learning for Computer Vision, 18 Nov. 2024, University of California, Los Angeles. PowerPoint presentation.
 
-[1] Redmon, Joseph, et al. "You only look once: Unified, real-time object detection." *Proceedings of the IEEE conference on computer vision and pattern recognition*. 2016.
+[2] Waymo Open Dataset, 17 June 2024. *CVPR Workshop on Autonomous Driving*.
+
+[2] Charles R Qi, Hao Su, Kaichun Mo, and Leonidas J Guibas. "Pointnet: Deep learning on point sets for 3d classification and segmentation." *CVPR*. 2017.
+
+[3] Charles R Qi, Li Yi, Hao Su, and Leonidas J Guibas. "Point-net++: Deep hierarchical feature learning on point sets in a metric space." *NeurIPS*. 2017
+
+[4] Wu, Xiaoyang, Li, Jiang, Peng-Shuai, Wang, Zhĳian, Liu, Xihui, Liu, Yu, Qiao, Wanli, Ouyang, Tong, He, Hengshuang, Zhao. "Point Transformer V3: Simpler, Faster, Stronger." *CVPR*. 2024.
+
+[5] Yang Zhang, Zixiang Zhou, Philip David, Xiangyu Yue, Ze-rong Xi, Boqing Gong, and Hassan Foroosh. "Polarnet: An improved grid representation for online lidar point clouds se-mantic segmentation." *CVPR*. 2020.
+
+[6] Zhou, Zixiang, Yang, Zhang, Hassan, Foroosh. "Panoptic-PolarNet: Proposal-free LiDAR Point Cloud Panoptic Segmentation." *CVPR*. 2021.
+
 
 ---
