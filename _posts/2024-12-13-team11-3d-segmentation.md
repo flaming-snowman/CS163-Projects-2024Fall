@@ -18,7 +18,7 @@ date: 2024-12-12
 {: style="width: 400px; max-width: 100%;"}
 *Fig 1. Example of 2D Semantic Segmentation* [1].
 
-Semantic segmentation is a foundational task in computer vision for scene understanding. 2D semantic segmentation involves assigning a class label to every pixel in an image. In 3D sematic segmentation, we assign a class label to every point in a LiDAR point cloud. This is a more challenging task due to the sparsity and unordered nature of point clouds, resulting in a lack of inherent spatial relationships between points and making it difficult to utilize traditional grid-based operations. While we often relied on feautres like spatial locality and the inherent density of 2D images to process them through techniques like convolutions or patches, we must tackle the irregularity and sparsity of most 3D representations. 
+Semantic segmentation is the backbone of many understanding tasks, from robotics to medical autonomy. 2D semantic segmentation involves assigning a class label to every pixel in an image. In 3D sematic segmentation, we extend this to assigning a class label to every point in a LiDAR point cloud. This is a much more challenging task due to the sparsity and unordered nature of point clouds, removing the helpful spatial locality and inherent density of 2D images we relied on to utilize traditional grid-based operations efficiency. Because of a lack of inherent spatial relationship between an unordered point set, we can't naively process them through techniques like convolutions or patching. We discuss 3 deep learning based approaches to this challeng. 
 
 ![3DSeg]({{ '/assets/images/team11/3d_seg.png' | relative_url }})
 {: style="width: 400px; max-width: 100%;"}
@@ -111,12 +111,79 @@ For this reason, we'll explore solutions that operate directly on point clouds, 
 
 ## PointNet
 
-PointNet was one of the first deep learning solutions to directly process raw point clouds without requiring a voxelization or projection step into a structure input. It addressed the key challenge of permutation invariance, developing a technique that enabled a model to learn outputs that are the sme regardless of the order points are inputted. 
+PointNet was one of the first deep learning solutions to directly process raw point clouds without requiring a voxelization or projection step into a structure input. It addressed three key challenges: 
+- Permutation invariance: point cloud data is inherently unordered and should handle all $$N!$$ possible permutations of the input exactly the same.
+- Interaction among points: in acknolwedging permutation invariance and foregoing a direct 3-dimensional structural representation, we should still account for the distance between points to maintain spatial information. For example, we might imagine as in CNNs that local features aggregate and build up to more complex, semantic features.
+- Transformation invariance: a geometric object's representations and downstream predictions should ideally be identical under transformations like rotations.
+In addressing these, PointNet became the new state-of-the-art as a backbone for 3D recognitions tasks, ranging from classification to part and instance segmentation, showing better robustness to rigid motions and perturbations. 
+
+The key to PointNets lies in finding an informative symmetic function. A symmetric function $$g$$ is one that approximates a set on a function $$f$$ as:
+
+We approximate the function applied to a set by applying a symmetric function on transformed elements in the set:
+$$
+f(\{x_1, \dots, x_n\}) \approx g(h(x_1), \dots, h(x_n)),
+$$
+
+where $$f : 2^{\mathbb{R}^N} \to \mathbb{R}$$ is the module we develop, $$h : \mathbb{R}^N \to \mathbb{R}^K $$ is a transformation we're learning (to extract features from the data), and  
+$$ \gamma  : \underbrace{\mathbb{R}^K \times \cdots \times \mathbb{R}^K}_{n} \to \mathbb{R} $$ is a symmetric function we rap these transformed outputs in to get a permutation invariant output. Instead, we can simply use an elementwise maximum function:
+$$
+f(\{x_1, \ldots, x_n\}) \approx \gamma (\operatorname{MAX}_{i=1,\ldots,n}\{h(x_i)\})
+$$
+This is both very computationally efficient and empirically powerful. Intuitively, it tries captures the most important signals. $$gamma$$ and $$h$$ are typically MLP networks to enable universal set function approximation, as we describe below.
+
+PointNet also captures both global and local features for segmentation. It learns both a $$1024$$-dimensional global feature vector $$F$$ and $$64$$-dimensional pointwise feature vectors $$f_i$$, which are concatenated together before being passed into our segmentation head. This can improve performance on dense prediction tasks that rely on local features for final predictions.
+
+Lastly, to address transformation invariance, one simply solution would be to just align an input set to a known orientation before feature extraction. This can be learned as an affine transformation, learned by a "T-net", a smaller submdoule that's a neural network on its own. This network's architecture is similar to the overall network ifself, learning an affine transformation matrix $$A$$ for canonicalizing input point clouds. We also use $$\ell_2$$ regularization to keep the matrix orthogonal, which can prevent compressing space and losing information. 
+$$
+\ell=\lVert I-AA^T\rVert_F^2
+$$
+This empirically stabilized the training trajectory and convergence speed.
+
+The authors of the PointNet paper also showed that PointNet maintained the universal approximation property--it can approximate any continuous set function on point clouds. Intuitively, we can interpret the model to show that it learns by summarizing shapes with a skeleton, a sparse subset of informative points. This guides the model to select interesting and informative points, regardless of their exact positions in 3D space, ane encode its reason for selecting them as a backbone. (TODO SHORTEN PARAGRAPH) This improves robustness by only relying on a finite set of critical points per object, since as long as these critical points are unchanged the model is robust to other noise and occlusion. 
+
+
+
+
+RNNs - O. Vinyals, S. Bengio, and M. Kudlur. Order matters: Sequence to sequence for sets. arXiv preprint
+arXiv:1511.06391, 2015.
+
+
+PointNet scales linearly at $$\mathcal{O}(n)$$ compute with respect to the number of points, while 3D convolutions would scale at $$\mathcal{O}(n^3)$$!
 
 ### PointNet++
 
+While PointNet revolutioned deep learning in 3D at scale, it is not without its limitations. Particularly, its naively relies solely on MLP layers, lacking the locality and hierarchical feature extraction that made CNNs effective in both 2D and 3D cases, even if inefficient. PointNet is also unable to handle non-uniform LiDAR scans, assuming that its points are uniformly distributed. However, this is rarely true as real world point cloud have varying densities. For example, an autonomous vehicle will have greatly increased densities by nearby objects like pedestrians and street signs, but a low point density on distance roads, posing a challenge for PointNet to understand the environment's structure. 
 
-## PointTransformerV3
+PointNet++ addresses these challenges by introducing hierarchical learning in three layers:
+1. First, a sampling layer uses farthest point sampling to select representative centroids for local regions. FPS chooses a subset $$\{x_1{i_1},x_{i_2},\ldots,x_{i_m}\}$$ such that $$x_{i_j}$$ is the most distant point from the the points $$\{x_1{i_1},x_{i_2},\ldots,x_{i_{j-1}}\}$$ with respect to the rest of the points. 
+2. Second, a grouping layer construct $$N'\times K\times (d+C)$$ local regions around the $$N'$$ $$d$$-dimensional centroids from an $$N\times (d+C)$$ point set, where $$K$$ is the number of neighbors to group together. This is done either via k-nearest neighbors sellecion, or a ball query where all points within a radius to a query point are added to a subgroup. 
+3. A local mini-PointNet is applied to each region to extract features. Local geometry is encoded via relative coordinates.
+
+This transforms the problem into smaller, more uniformly distributed sections that PointNet can handle, to be much more robust under non-uniform samling density. Similar to the inductive bias of CNNs, PointNet++ learns features at multiple set abstraction levels, where the above process is repeated many times to produce sets of fewer elements. This enables the model to learn fine-grained features and capture local geometry, but also provide contextual information via pooling layers. 
+
+Additionaly, to handle the non-uniform sampling sampling inherent to point cloud data, PointNet++ introduces two new density adaptive layers. The first, Multi-Scale Grouping, uses a random dropout with a random rate of $$\theta\sim U(0, p)$$ for $$o\leq 1$$ on inputs to enforce training on data of various sparsities and various uniformities. This essentially extends on traditional neural network dropout by learning levels of sparsity, maintaining the same benefits like partially disentangling neurons. As this method is computationally expensive, since it would require running an entire PointNet forward pass even for very small centroids regions, PointNet++ also introduces Multi-resolution grouping, which essentially joins features from low density regions in a weighted manner.
+
+Finally, they propose point feature propagation, where point features are propagated back into the original point cloud via an inverse distance-weighted interpolation based on $k$ nearest neighbors, which are connected from the set abstraction back into point space with skip connections. Similar to ResNet residual connections, this helps the model make high-resolution predictions. 
+
+PointNet++ set a new state-of-the-art for semantic segmentation, object detection, and classification tasks in 3D, ourperforming PointNet on small datasets like ScanNet and ModelNet40 of the time. By exploiting inherent hierarchies in data more efficiently than techniques like 3D convolutions or even sparse convolutions, PointNet++ addressed many of the original assumptions PointNet made about its data, improving robustness. However, its computational costs are stil much higher. 
+
+## PointTransformer V3
+
+PointTransformer V3 is the current state-of-the-art for 3D segmentation tasks, holding the highest accuracy on benchmarks like SemanticKITTI ScanNet as of today.
+
+PointTransformer V1 marked 3D's "ViT moment," tailoring the attention mechanism for point clouds. Unlike PointNet's reliance on MLPs, PointTransformer uses attention to share rich local and global features through unstructed point clouds. However, its reliance on $$k$$ nearest neighbors and pairwise computation as a whole rendered it difficult to scale. 
+
+Insert PointTransformer V1 picture
+
+PointTransformer V2 built on top of this by introducing Grouped Vector Attention (GVA) to enahnce computational efficiency. It presented a series of small optimizations on top of the original PointTransformer that added up, such as halving the total pairwise computations, increasing overall performance but reamining limited for large-scale dataset
+
+Insert PointTransformer V2 picture
+
+PointTransformer V3 (PTv3) simplifies the architecture further and focuses on scale. One main focus of the project is point cloud serialization, a much more efficient method to transform unstructured point cloud data into a structured, serialized format for computation. This is done via space-filling curves, paths through a discrete high-dimensional space (like point space). 
+
+PTv3 focuses specifically on Z-order curves and Hilbert curves, both of which preserve spatial locality and improve computational efficiency by structuring data. They trasvers traverse 3D space through their specificied path, capturing discovered point clouds into a serialized 1D sequence. To leverage this locality preservations, the serlaization process assigns points basd on their position into a serialization code. This is similar to the embedding process for traditional transformers. 
+
+fedwadwadwa
 
 ## Panoptic-PolarNet
 
