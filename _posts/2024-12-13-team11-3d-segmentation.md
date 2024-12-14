@@ -6,7 +6,7 @@ author: Rathul Anand, Jason Liu
 date: 2024-12-12
 ---
 
-> 3D semantic segmentation is a cornerstone of modern computer vision, enabling understanding of our phyiscal world for applications ranging from embodied intelligence and robotics to autonomous driving. In 3D semantic segmentation, our goal is to assign a semantic label to every point in a LiDAR point cloud. Compared to pixel grids of 2D images, data from 3D sensors are are complex, irregular, and sparse, lacking the niceties and biases in data we often exploit in processing 2D images. We will discuss 3 deep learning based approaches pioneering the field, namely PointNet, PointTransformerV3, and Panoptic-Polarnet.
+> 3D semantic segmentation is a cornerstone of modern computer vision, enabling understanding of our physical world for applications ranging from embodied intelligence and robotics to autonomous driving. In 3D semantic segmentation, our goal is to assign a semantic label to every point in a LiDAR point cloud. Compared to pixel grids of 2D images, data from 3D sensors are complex, irregular, and sparse, lacking the niceties and biases in data we often exploit in processing 2D images. We will discuss 3 deep learning based approaches pioneering the field, namely PointNet, PointTransformerV3, and Panoptic-Polarnet.
 
 <!--more-->
 {: class="table-of-content"}
@@ -28,30 +28,36 @@ Some researchers transform point clouds into voxel grids, a 3D counterpart to pi
 
 ## 3D Scene Representations
 ### Point Clouds
-We often represent 3D scenes as point clouds. A point cloud is a collection of $n$ unordered points in 3D space: 
-\[
-    \mathcal{P}=\{(x_i, y_i, z_i, f_i) : i=1,\ldots,n}
-\]
-where each point is associated with a spatial location and $k$-dimensional $f_i$ vector encoding optional features like color and intensity, and eventually semantic label. Typically, we represent this as a matrix $\mathbf{P}\in\mathbb{R}^{n\times (3+k)}$. 
+We often represent 3D scenes as point clouds. A point cloud is a collection of $$n$$ unordered points in 3D space: 
+
+$$
+    \mathcal{P}=\{(x_i, y_i, z_i, f_i) : i=1,\ldots,n\}
+$$
+
+where each point is associated with a spatial location and $$k$$-dimensional $$f_i$$ vector encoding optional features like color and intensity, and eventually semantic label. Typically, we represent this as a matrix $$\mathbf{P}\in\mathbb{R}^{n\times (3+k)}$$. 
 
 Insert point cloud picture here
 
-Point clouds are often collected from LiDAR sensors, which use the time of flight to obtain the 3D shape of a surrounding environment. LiDAR sensors shoot out impulses (via a packet of photons—-rays) to a scene, each of which bounce off an object $z$ meters away. Given the time to return $t_d$ and the speed of light, we can calculate
-\[
+Point clouds are often collected from LiDAR sensors, which use the time of flight to obtain the 3D shape of a surrounding environment. LiDAR sensors shoot out impulses (via a packet of photons—-rays) to a scene, each of which bounce off an object $$z$$ meters away. Given the time to return $$t_d$$ and the speed of light, we can calculate
+
+$$
     z=c\times t_d\times 0.5
-\]
+$$
+
 to get the distance each ray traveled before bouncing back. Combining with the ray angle data, we can capture a point cloud of the surface observed.
 
 Insert LiDAR picture here
 
 ### Voxel Grids
-Voxels are the most natural extension of pixels into the 3-dimensional case, as they're essentially 3D pixels. A voxel is a volumetric representation dividing a space into uniform cubes, represented as a 4-dimensional tensor containing information about each $(x,y,z)$ location in a scene:
-\[
+Voxels are the most natural extension of pixels into the 3-dimensional case, as they're essentially 3D pixels. A voxel is a volumetric representation dividing a space into uniform cubes, represented as a 4-dimensional tensor containing information about each $$(x,y,z)$$ location in a scene:
+
+$$
     \mathbf{V}\in\mathbb{R}^{X\times Y\times Z\times C}
-\]
+$$
+
 where each channel might contain RGB data, reflectance, and instance-level data like semantic labels. 
 
-Voxel size determines the grid's resolution, which can lead to a tradeoff between high resolution and the number of unused voxels. Given that we typically only care about a 2D manifold/surface within the 3D space, voxels will capture mostly empty cubes, which can naturally lead to challenges with naively applying traditional operations like convolution. For this reason, we often work with binary voxels, tensors containing $1$'s for occupied space and $0$'s for empty space. Despite the benefit of spatial ordering that voxels give us, for this reason voxels will suffer from a significant computational overhead to process.
+Voxel size determines the grid's resolution, which can lead to a tradeoff between high resolution and the number of unused voxels. Given that we typically only care about a 2D manifold/surface within the 3D space, voxels will capture mostly empty cubes, which can naturally lead to challenges with naively applying traditional operations like convolution. For this reason, we often work with binary voxels, tensors containing $$1$$'s for occupied space and $$0$$'s for empty space. Despite the benefit of spatial ordering that voxels give us, for this reason voxels will suffer from a significant computational overhead to process.
 
 ### Meshes
 Meshes represent 3D objects as a collection of vertices, edges, and faces. This better aligns with the features we wish to learn from in 3D space, as they contain rich geometric and topological information. However, they're irregular and more difficult to represent in a neural network, leading to extra complexity in processing and reconstruction.
@@ -74,17 +80,18 @@ The Waymo Open Dataset is another large-scale autonomous driving dataset, contai
 Insert image
 ### Evaluation Metrics
 As we did in 2D segmentation, we're parimarily concerned with the Intersection over Union (IoU) score of our models. This measures the overal between the predicted segmentation and the ground truth segmentation for each class. For a scene and class, we can calculate:
-\[
+
+$$
     \text{IoU}=\frac{|\text{Predicted}\cap\text{Ground Truth}}{\text{Predicted}\cup\text{Ground Truth}}
-\]
+$$
 
 Our goal is to minimize mIoU, the mean IoU over all classes.
 
-For panoptic segmentation tasks, we also measure Panoptic Quality (PO). This measure combines segmentation quality (IoU) with recognition quantity (oftn F1 score, measuring precisoin and recall):
+For panoptic segmentation tasks, we also measure Panoptic Quality (PO). This measure combines segmentation quality (IoU) with recognition quantity (often F1 score, measuring precision and recall):
 
-\[
+$$
     \text{PQ}=\text{SQ}\cdot \text{RQ}
-\]
+$$
 
 ## Motivation and Applications
 TODO
@@ -104,7 +111,7 @@ For this reason, we'll explore solutions that operate directly on point clouds, 
 
 ## PointNet
 
-PointNet was one of the first deep learning solutions to directly process raw point clouds without requiring a voxelization or projection step into a structure input. It addressed th ekey challenge of permutation invariance, developing a technique that enabled a model to learn outputs that are the sme regardless of the order points are inputted. 
+PointNet was one of the first deep learning solutions to directly process raw point clouds without requiring a voxelization or projection step into a structure input. It addressed the key challenge of permutation invariance, developing a technique that enabled a model to learn outputs that are the sme regardless of the order points are inputted. 
 
 ### PointNet++
 
