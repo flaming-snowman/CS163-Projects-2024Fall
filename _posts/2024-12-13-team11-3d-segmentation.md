@@ -187,11 +187,47 @@ fedwadwadwa
 
 ## Panoptic-PolarNet
 
+Additionally, we discuss Panoptic-PolarNet.
+
 ## Results
+
+|             | test mIoU   |  Year   |
+| :---        |    :----:   |    ---: |
+| PTv3        | 75.5%       | 2023    |
+| PolarNet    | 57.2%       | 2020    |
+| PointNet++  | 20.1%       | 2017    |
+| PointNet    | 14.6%       | 2016    |
+
+*Table 1: Scores for SemanticKITTI 3D Semantic Segmentation task* [7]
+
 # Analysis
 ## Comparisons
 ## Impact and Future Directions
 ## Conclusions
+
+# Running Pointnet++
+
+We utilize the [Pointnet++ Pytorch implementation](https://github.com/yanx27/Pointnet_Pointnet2_pytorch) [8] for semantic segmentation on the S3DIS indoor dataset.
+
+The S3DIS dataset can be downloaded by filling out this [form](https://docs.google.com/forms/d/e/1FAIpQLScDimvNMCGhy_rmBA2gHfDu3naktRm6A8BPwAWWDv-Uhm6Shw/viewform?c=0&w=1).
+
+The repository supports running Pointnet and Pointnet++ for classification, part segmentation, and semantic segmentation and is implemented in Python with pytorch as its only dependency, making it easy to run in Colab. Our Colab notebook can be found [here](https://colab.research.google.com/drive/1s2QeUU9xv8uF5di7v05RVepPq0gpxo3M?usp=sharing).
+
+Minor modifications to the train and test scripts need to be made due to np.float being deprecated by Numpy. Additionally, the train and test scripts expect the dataset to be in different locations, so we create a symlink to account for this.
+
+The model outputs visualizations as an OBJ file that we can compare to the ground truth in [Meshlab](https://www.meshlab.net/), an open source visualization tool. We display one set of results from our model.
+
+![Prediction]({{ '/assets/images/team11/pred.JPG' | relative_url }})
+{: style="width: 400px; max-width: 100%;"}
+*Fig 2. Prediction for an office scene*
+
+![Ground Truth]({{ '/assets/images/team11/gt.JPG' | relative_url }})
+{: style="width: 400px; max-width: 100%;"}
+*Fig 2. Ground truth for an office scene*
+
+S3DIS has 13 classes: ceiling, floor, wall, beam, column, window, door, table, chair, sofa, bookcase, board, and clutter.
+
+The model achieves very high mIoU for ceilings and floors, but often confuses walls, windows and bookcases. For this office scene, Pointnet++ impressively detects the chairs and tables.
 
 # References
 [1] Zhou, Bolei. *Lecture 14: Detection + Segmentation.* Computer Science 163: Deep Learning for Computer Vision, 18 Nov. 2024, University of California, Los Angeles. PowerPoint presentation.
@@ -208,5 +244,8 @@ fedwadwadwa
 
 [6] Zhou, Zixiang, Yang, Zhang, Hassan, Foroosh. "Panoptic-PolarNet: Proposal-free LiDAR Point Cloud Panoptic Segmentation." *CVPR*. 2021.
 
+[7] "Papers with Code: 3D Semantic Segmentation on SemanticKITTI Leaderboard." *Papers with Code*, 2024, https://paperswithcode.com/sota/3d-semantic-segmentation-on-semantickitti
+
+[8] "Xu Yan, . "Pointnet/Pointnet++ Pytorch". *https://github.com/yanx27/Pointnet_Pointnet2_pytorch*. (2019).
 
 ---
