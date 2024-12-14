@@ -179,7 +179,6 @@ Additionally, we discuss PolarNet [5], which utilizes 2D projections to handle p
 
 It consists of 4 main steps: polar quantization, grid feature extraction, ring CNN, and projecting the prediction back to 3D.
 
-# Introduction
 ![PolarNet]({{ '/assets/images/team11/polarnet.png' | relative_url }})
 {: style="width: 400px; max-width: 100%;"}
 *Fig 6. PolarNet Overview* [5].
