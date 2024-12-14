@@ -185,9 +185,53 @@ PTv3 focuses specifically on Z-order curves and Hilbert curves, both of which pr
 
 fedwadwadwa
 
-## Panoptic-PolarNet
+## PolarNet
+Additionally, we discuss PolarNet, which utilizes 2D projections to handle point clouds.
 
-Additionally, we discuss Panoptic-PolarNet.
+It consists of 4 main steps: polar quantization, grid feature extraction, ring CNN, and projecting the prediction back to 3D.
+
+#### Polar Quantization
+In order to tackle the challenges with dealing with 3D point clouds, PolarNet utilizes a 2D projection in order to make the data more manageable. It chooses to use a top-down projection, called a bird's eye view (BEV). Using a BEV is especially well-suited for outdoor scenes, since objets do not typically overlap in the z-axis.
+
+After projection, the points are grouped into a grid in order to utilize standard 2D CNN techniques. The main improvement in PolarNet stems from the method they use to convert points into a grid. Rather than using a traditional cartesian grid, they use polar coordinates. This helps tackle a major issue with cartesian grids: the fact that LiDAR point clouds tend to be much more dense close to the center. By using polar, we more evenly distribute the number of points in each grid cell and minimize information loss due to quantization.
+
+The authors use the SemanticKITTI dataset to perform several sanity checks:
+
+1. Polar coordinates indeed help evenly spread out points, with each grid cell having $$0.7\pm 3.2$$ points in cartesian BEV and $$0.7\pm 1.4$$ points in polar BEV.
+
+2. Assigning every point in each grid cell to its majority class results in high mIoU: $$97.3%$$ for cartesian BEV and $$98.5%$$ for polar BEV.
+
+This suggests that using a BEV results in minimal information loss for outdoor scenes, and using the majority label for every point in a grid cell is a sound strategy for achieving high prediction scores.
+
+#### Grid Feature Extraction
+
+Now that we have grouped our points into grid cells, we want a fixed-length representation for each set of points.
+
+We use a simplified PointNet model $$h(x)$$ consisting of just an MLP. We apply $$h$$ to each individual point in the grid cell, then apply a max-pooling operation for permutation invariance (since the point clouds are unordered).
+
+#### Ring Convolution
+
+After transforming the point cloud into a grid-based representation, we are almost ready to build a standard CNN model.
+
+However, due to the geometry of polar coordinates, the angular edges of the matrix representing the grid are also spatially connected to each other (since $$0^\deg and 359^\deg$$ are next to each other). Thus, we must account for this when designing our convolutional layers.
+
+Luckily, it is fairly easy to perform a ring convolution: one can simply pad the angular dimension of the matrix with a copy of itself. Making a copy of the original data and putting them side-by-side is a standard technique for designing cyclic algorithms.
+
+PolarNet utilizes a standard UNet model with 4 encoding and 4 decoding layers, replacing the convolutional layers with ring convolutions.
+
+#### Prediction
+The output of the CNN predicts a class label for each grid cell. During training, the ground truth label for each grid cell is computed using majority vote, and mIoU is used as the loss function.
+
+At test time, for each grid cell $i$ with label $c$, we assign every point that maps to cell $i$ with the label $c$.
+
+This achieves fairly robust results without the need for developing any particularly novel architecture. Additionally, the resulting model is extremely lightweight and can be run in real-time applications.
+
+### Panoptic-PolarNet
+The authors have also extended PolarNet for panoptic segmentation, for which we provide a brief summary. Panoptic segmentation aims to unify instance and semantic segmentation, assigning a class label to every point, and assigning instance IDs to points belonging to a "thing" class (e.g. car). For points belonging to a "stuff" class (e.g. sky), we do not assign an instance ID.
+
+In Panoptic-PolarNet, additional prediction heads are added to the end of the UNet backbone. For each grid cell, a heatmap of likely object centers is generated. Grid cells with the same centers are grouped together, and a deterministic fusion step is used to combine the groupings with the semantic segmentation prediction to produce a panoptic segmentation prediction. A combined loss function is used to optimize all of the prediction heads simulatenously.
+
+Panoptic quality is used as a metric to evaluate panoptic segmentation, and Panoptic-PolarNet achieved state of the art performance on SemanticKITTI panoptic segmentation when it was published.
 
 ## Results
 
