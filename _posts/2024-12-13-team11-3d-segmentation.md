@@ -132,8 +132,6 @@ This empirically stabilized the training trajectory and convergence speed.
 
 The authors of the PointNet paper also showed that PointNet maintained the universal approximation property--it can approximate any continuous set function on point clouds. Intuitively, we can interpret the model to show that it learns by summarizing shapes with a skeleton, a sparse subset of informative points. This guides the model to select interesting and informative points, regardless of their exact positions in 3D space, ane encode its reason for selecting them as a backbone. (TODO SHORTEN PARAGRAPH) This improves robustness by only relying on a finite set of critical points per object, since as long as these critical points are unchanged the model is robust to other noise and occlusion.
 
-RNNs - O. Vinyals, S. Bengio, and M. Kudlur. Order matters: Sequence to sequence for sets. arXiv preprint
-arXiv:1511.06391, 2015.
 
 PointNet scales linearly at $$\mathcal{O}(n)$$ compute with respect to the number of points, while 3D convolutions would scale at $$\mathcal{O}(n^3)$$!
 
@@ -171,7 +169,20 @@ PointTransformer V3 (PTv3) simplifies the architecture further and focuses on sc
 
 PTv3 focuses specifically on Z-order curves and Hilbert curves, both of which preserve spatial locality and improve computational efficiency by structuring data. They trasvers traverse 3D space through their specificied path, capturing discovered point clouds into a serialized 1D sequence. To leverage this locality preservations, the serlaization process assigns points basd on their position into a serialization code. This is similar to the embedding process for traditional transformers. 
 
-fedwadwadwa
+TODO why can't we naively implement this?
+Furthermore, we can't naively incorporate the same window or dot-product attention mechanisms found in image or text transformers, as they take advantage of fixed spatial representations. While this is where original point transformers leveraged on neighborhood attention with neighborhood reduction stratgies relying heavily on pairwise computations, PTv3 intoduces patch attention as their attention mechanism, grouping points into non-overlapping patches and performing attention within each patch (similar to Swin Transformer). Models like PointNet++ also leveraged patch grouping strategies, but PTv3 leverages the inherent structure of the serialization for its patch grouping. 
+
+PTv3 incorporates these choices in a traditional U-Net like encoder-decoder structure for hierarchical feature analysis. It startrs by initializing serializations and embeddings from point cloud data. Then, the 4-stage encoder and decoder consists of several traditional transformer blocks with positional encoding, LayerNorm, Attention, and MLP layers. Although this method does approximate less optimal solutions than a k nearest neighbors based grouping or different attention mechanism, our formulation can now leverage traditional tooling for serialization and attention, helping the model scale easier. For example, the authors are able to scale up PTv3 to a larger receptive field of 4096 points while maintaing efficiency. The hypothesis that scale outweights intricate model design is validated in the results, as PointTransformer V3 sets a new SOTA on outdoor semantic segmentation tasks:
+
+| Model | ScanNet200 Test | S3DIS 6-fold | nuScenes Test | Sem.KITTI Test | Waymo mIoU |
+|:------|:---------------:|:------------:|:-------------:|:--------------:|:----------:|
+| PTv1  | - | 65.4 | 81.9 | 74.8 | - |
+| PTv2  | 74.2 | 73.5 | 82.6 | 72.6 | 80.2 |
+| PTv3  | **79.4**  | **80.8** | **83.0** | **75.5** | **81.3** |
+
+*Table 1: Scores for PointTransformers on Semantic Segmentation tasks* [7]
+
+TODO insert PTv3 overall architecture diagram
 
 ## PolarNet
 Additionally, we discuss PolarNet, which utilizes 2D projections to handle point clouds.
@@ -247,7 +258,7 @@ Panoptic-PolarNet achieved state of the art performance on SemanticKITTI panopti
 | PointNet++  | 20.1%       | 2017    |
 | PointNet    | 14.6%       | 2016    |
 
-*Table 1: Scores for SemanticKITTI 3D Semantic Segmentation task* [7]
+*Table 2: Scores for SemanticKITTI 3D Semantic Segmentation task* [7]
 
 # Analysis
 ## Comparisons
@@ -295,6 +306,8 @@ The model achieves very high mIoU for ceilings and floors, but often confuses wa
 
 [7] "Papers with Code: 3D Semantic Segmentation on SemanticKITTI Leaderboard." *Papers with Code*, 2024, https://paperswithcode.com/sota/3d-semantic-segmentation-on-semantickitti
 
-[8] "Xu Yan, . "Pointnet/Pointnet++ Pytorch". *https://github.com/yanx27/Pointnet_Pointnet2_pytorch*. (2019).
+[8] Xu Yan. "Pointnet/Pointnet++ Pytorch". *https://github.com/yanx27/Pointnet_Pointnet2_pytorch*. 2019.
+
+[9] Wu, Xiaoyang and Jiang, Li and Wang, Peng-Shuai and Liu, Zhijian and Liu, Xihui and Qiao, Yu and Ouyang, Wanli and He, Tong and Zhao, Hengshuang. "Point Transformer V3: Simpler, Faster, Stronger." *CVPR*. 2024.
 
 ---
